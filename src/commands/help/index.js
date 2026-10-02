@@ -1,3 +1,72 @@
+import { EmbedBuilder } from 'discord.js';
+
+function helpEmbed() {
+  return new EmbedBuilder()
+    .setColor(0x5865f2)
+    .setTitle('clara')
+    .setDescription(
+      'simple tools for your server.\nuse `/` or `.` before a command.',
+    )
+    .addFields(
+      {
+        name: 'utility',
+        value: [
+          '`avatar` · `av`',
+          '`serverinfo` · `si`',
+          '`banner`',
+          '`serverbanner`',
+          '`servericon`',
+          '`nickname` · `nick`',
+        ].join('\n'),
+        inline: true,
+      },
+      {
+        name: 'moderation',
+        value: [
+          '`ban`',
+          '`kick`',
+          '`timeout`',
+          '`purge`',
+          '`lock` · `unlock`',
+          '`hide` · `unhide`',
+          '`nuke`',
+          '`role`',
+        ].join('\n'),
+        inline: true,
+      },
+      {
+        name: 'other',
+        value: [
+          '`remindme`',
+          '`echo`',
+        ].join('\n'),
+        inline: true,
+      },
+      {
+        name: 'examples',
+        value: [
+          '`.avatar @user`',
+          '`.serverinfo`',
+          '`.ban @user reason`',
+          '`.timeout @user 10min`',
+          '`.role @user moderator`',
+          '`.remindme 2min study`',
+          '`.echo hello`',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: 'reminder time',
+        value:
+          '`s` / `sec` · seconds\n`m` / `min` · minutes\n`h` / `hr` · hours\n`d` · days',
+        inline: false,
+      },
+    )
+    .setFooter({
+      text: 'clara · help',
+    });
+}
+
 export const helpCommand = {
   name: 'help',
   aliases: [],
@@ -5,78 +74,20 @@ export const helpCommand = {
   options: [],
 
   async prefix({ message }) {
-    await message.reply(
-      [
-        '╭───── clara',
-        '│',
-        '│  utility',
-        '│  ├─ .avatar @user  •  .av @user',
-        '│  ├─ .serverinfo  •  .si',
-        '│  ├─ .banner @user',
-        '│  ├─ .serverbanner',
-        '│  ├─ .servericon',
-        '│  ├─ .nickname @user [name]',
-        '│  └─ .nick @user [name]',
-        '│',
-        '│  moderation',
-        '│  ├─ .ban @user reason',
-        '│  ├─ .kick @user reason',
-        '│  ├─ .timeout @user 10min',
-        '│  ├─ .purge 10',
-        '│  ├─ .lock  •  .unlock',
-        '│  ├─ .hide  •  .unhide',
-        '│  ├─ .nuke',
-        '│  └─ .role @user rolename',
-        '│',
-        '│  roles',
-        '│  ├─ .role rolename',
-        '│  ├─ .role create rolename',
-        '│  └─ .role delete rolename',
-        '│',
-        '│  misc',
-        '│  ├─ .remindme 2min reason',
-        '│  └─ .echo message',
-        '│',
-        '│  reminder time',
-        '│  ├─ s / sec  → seconds',
-        '│  ├─ m / min  → minutes',
-        '│  ├─ h / hr   → hours',
-        '│  └─ d        → days',
-        '│',
-        '╰───── clara',
-      ].join('\n'),
-    );
+    await message.reply({
+      embeds: [helpEmbed()],
+      allowedMentions: {
+        parse: [],
+      },
+    });
   },
 
   async slash({ interaction }) {
-    await interaction.reply(
-      [
-        '╭───── clara',
-        '│',
-        '│  utility',
-        '│  ├─ /avatar  •  /av',
-        '│  ├─ /serverinfo  •  /si',
-        '│  ├─ /banner',
-        '│  ├─ /serverbanner',
-        '│  ├─ /servericon',
-        '│  ├─ /nickname  •  /nick',
-        '│',
-        '│  moderation',
-        '│  ├─ /ban',
-        '│  ├─ /kick',
-        '│  ├─ /timeout',
-        '│  ├─ /purge',
-        '│  ├─ /lock  •  /unlock',
-        '│  ├─ /hide  •  /unhide',
-        '│  ├─ /nuke',
-        '│  └─ /role',
-        '│',
-        '│  misc',
-        '│  ├─ /remindme',
-        '│  └─ /echo',
-        '│',
-        '╰───── clara',
-      ].join('\n'),
-    );
+    await interaction.reply({
+      embeds: [helpEmbed()],
+      allowedMentions: {
+        parse: [],
+      },
+    });
   },
 };
