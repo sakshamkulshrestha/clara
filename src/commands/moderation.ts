@@ -1,5 +1,6 @@
 import { PermissionsBitField, type Guild, type GuildMember } from 'discord.js';
 import { db, save } from '../lib/db';
+import { actionLine } from '../lib/ai';
 import {
   type Command, type Msg, done, duration, embed, guard, idOf, member, role, say, show, stamp, textChannel, user,
 } from '../lib/util';
@@ -228,19 +229,49 @@ const roleCmd = (give: boolean): Command => ({
 });
 
 const nick: Command = {
-  name: 'nick', desc: 'change a nickname, or reset', usage: '<user> <nickname|reset>', perm: F.ManageNicknames,
+  name: 'nick', desc: 'change a nickname, or reset', usage: '<user> [nickname|reset]', perm: F.ManageNicknames,
   async run(msg, args) {
     const m = await target(msg, args[0]);
     if (!m) return;
     const name = args.slice(1).join(' ');
-    if (!name) return say(msg, 'give a nickname, or reset.');
     if (!m.manageable) return say(msg, 'i cannot rename that one.');
-    await m.setNickname(name === 'reset' ? null : name.slice(0, 32), audit(msg, 'nick'));
-    return done(msg, 'nickname changed', `target: ${m.user.username}\nnew nickname: ${name}`, 'renamed.');
+    const reset = !name || name.toLowerCase() === 'reset';
+    await m.setNickname(reset ? null : name.slice(0, 32), audit(msg, 'nick'));
+    return done(
+      msg,
+      reset ? 'nickname reset' : 'nickname changed',
+      `target: ${m.user.username}\nnew nickname: ${reset ? 'reset' : name.slice(0, 32)}`,
+      reset ? 'nickname reset.' : 'renamed.',
+    );
+  },
+};
+
+const nuke: Command = {
+  name: 'nuke', desc: 'recreate a text channel and remove the old one', usage: '[#channel]', perm: F.ManageChannels,
+  async run(msg, args) {
+    const ch = textChannel(msg, args[0]);
+    if (!ch) return say(msg, 'text channels only.');
+    if (!ch.permissionsFor(msg.member!)?.has(F.ManageChannels)) return say(msg, 'you need manage channels in that channel.');
+    const bot = msg.guild.members.me ?? await msg.guild.members.fetchMe();
+    if (!ch.permissionsFor(bot)?.has(F.ManageChannels)) return say(msg, 'i need manage channels in that channel.');
+
+    const reason = audit(msg, 'nuke');
+    const replacement = await ch.clone({ name: ch.name, reason });
+    try {
+      await ch.delete(reason);
+    } catch (error) {
+      await replacement.delete('nuke cancelled because the original channel could not be deleted').catch(() => {});
+      throw error;
+    }
+
+    const reaction = await actionLine('nuke channel', `moderator: ${msg.member?.displayName}\nchannel: ${ch.name}`, 'rebuilt. try not to break it.')
+      .catch(() => 'rebuilt. try not to break it.');
+    await replacement.send({ content: reaction, allowedMentions: { parse: [] } })
+      .catch(() => msg.author.send({ content: reaction, allowedMentions: { parse: [] } }));
   },
 };
 
 export const moderation: Command[] = [
   ban, unban, kick, timeout, untimeout, warn, warnings, clearwarns, purge,
-  toggleLock(true), toggleLock(false), slowmode, roleCmd(true), roleCmd(false), nick,
+  toggleLock(true), toggleLock(false), slowmode, roleCmd(true), roleCmd(false), nick, nuke,
 ];

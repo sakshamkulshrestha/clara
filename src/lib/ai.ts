@@ -105,6 +105,20 @@ export async function respond(msg: Message<true>, text: string): Promise<string>
 
 // short unique line announcing a command that was just executed
 const recentLines: string[] = [];
+const fallbackLines: string[] = [];
+const reactionStarts = ['handled', 'sorted', 'taken care of', 'fixed', 'done with', 'all set for', 'consider it handled for', 'wrapped up', 'cleared', 'finished with', 'checked off the list for', 'put right for'];
+const reactionEnds = ['as requested', 'with no fuss', 'another crisis avoided', 'you are welcome', 'moving on', 'clean and simple', 'before anyone panicked', 'that was easy', 'not bad for a bot', 'try to keep up', 'the server survives another day', 'exactly as planned'];
+
+function variedFallback(action: string, detail: string, fallback: string) {
+  const subject = detail.match(/(?:target|channel):\s*([^\n]+)/i)?.[1] ?? action;
+  const choices = reactionStarts.flatMap((start) => reactionEnds.map((end) => `${start} ${subject}. ${end}.`))
+    .filter((line) => !fallbackLines.includes(line));
+  if (!choices.length) return fallback;
+  const line = choices[Math.floor(Math.random() * choices.length)];
+  fallbackLines.push(line);
+  if (fallbackLines.length > 144) fallbackLines.shift();
+  return line;
+}
 
 export async function actionLine(action: string, detail: string, fallback: string): Promise<string> {
   const avoid = recentLines.length ? ` never repeat or echo these earlier lines: ${recentLines.join(' | ')}.` : '';
@@ -123,7 +137,7 @@ export async function actionLine(action: string, detail: string, fallback: strin
     2500,
   );
   const line = out?.split(/[.!?](?:\s|$)/)[0]?.trim();
-  if (!line || line.split(/\s+/).length > 14) return fallback;
+  if (!line || line.split(/\s+/).length > 14) return variedFallback(action, detail, fallback);
   recentLines.push(line);
   if (recentLines.length > 6) recentLines.shift();
   return line;
