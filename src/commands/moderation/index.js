@@ -644,9 +644,13 @@ export const moderationCommands = [
             true,
           );
 
-        await message.channel.send(
-          `${randomPurgeMessage()} ${deleted.size} message(s).`,
-        );
+        const msg = await message.channel.send(
+  `${randomPurgeMessage()} ${deleted.size} message(s).`,
+);
+
+setTimeout(() => {
+  msg.delete().catch(() => {});
+}, 3000);
       } catch {
         await message.reply(
           'couldnt purge messages.',
@@ -686,9 +690,14 @@ export const moderationCommands = [
             true,
           );
 
-        await interaction.reply(
-          `${randomPurgeMessage()} ${deleted.size} message(s).`,
-        );
+        const msg = await interaction.reply({
+  content: `${randomPurgeMessage()} ${deleted.size} message(s).`,
+  fetchReply: true,
+});
+
+setTimeout(() => {
+  msg.delete().catch(() => {});
+}, 3000);
       } catch {
         await interaction.reply(
           'couldnt purge messages.',
