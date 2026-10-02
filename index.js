@@ -11,6 +11,10 @@ import { helpCommand } from './src/commands/help/index.js';
 import { utilityCommands } from './src/commands/utility/index.js';
 import { restoreReminders } from './src/utils/reminders.js';
 import { moderationCommands } from './src/commands/moderation/index.js';
+import {
+  aiCommands,
+  handleAIMessage,
+} from './src/commands/ai/index.js';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -22,6 +26,7 @@ const commands = [
   helpCommand,
   ...utilityCommands,
   ...moderationCommands,
+  ...aiCommands,
 ];
 
 const commandMap = new Map();
@@ -88,36 +93,51 @@ client.once('clientReady', async (bot) => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.guild) return;
-  if (!message.content.startsWith('.')) return;
 
-  const input = message.content
-    .slice(1)
-    .trim();
+  // prefix commands
+  if (message.content.startsWith('.')) {
+    const input = message.content
+      .slice(1)
+      .trim();
 
-  if (!input) return;
+    if (!input) return;
 
-  const parts = input.split(/\s+/);
-  const name = parts.shift()?.toLowerCase();
+    const parts = input.split(/\s+/);
+    const name =
+      parts.shift()?.toLowerCase();
 
-  if (!name) return;
+    if (!name) return;
 
-  const command = commandMap.get(name);
+    const command =
+      commandMap.get(name);
 
-  if (!command?.prefix) return;
+    if (!command?.prefix) return;
 
-  try {
-    await command.prefix({
-      message,
-      args: parts,
-      client,
-    });
-  } catch (error) {
-    console.error('prefix command error:', error);
+    try {
+      await command.prefix({
+        message,
+        args: parts,
+        client,
+      });
+    } catch (error) {
+      console.error(
+        'prefix command error:',
+        error,
+      );
 
-    await message
-      .reply('something went wrong.')
-      .catch(() => {});
+      await message
+        .reply('something went wrong.')
+        .catch(() => {});
+    }
+
+    return;
   }
+
+  // mentions + .ai automatic replies
+  await handleAIMessage(
+    message,
+    client,
+  );
 });
 
 client.on('interactionCreate', async (interaction) => {
