@@ -33,66 +33,35 @@ function saveReminders() {
 export function parseDuration(input) {
   const value = input.trim().toLowerCase();
 
-  const parts = value.match(
-    /(\d+)\s*(seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d)/g,
+  const match = value.match(
+    /^(\d+)(s|sec|m|min|h|hr|d)$/,
   );
 
-  if (!parts || parts.join('') !== value.replace(/\s+/g, '')) {
-    return null;
+  if (!match) return null;
+
+  const amount = Number(match[1]);
+
+  if (amount <= 0) return null;
+
+  switch (match[2]) {
+    case 's':
+    case 'sec':
+      return amount * 1000;
+
+    case 'm':
+    case 'min':
+      return amount * 60 * 1000;
+
+    case 'h':
+    case 'hr':
+      return amount * 60 * 60 * 1000;
+
+    case 'd':
+      return amount * 24 * 60 * 60 * 1000;
+
+    default:
+      return null;
   }
-
-  let total = 0;
-
-  for (const part of parts) {
-    const match = part.match(
-      /(\d+)\s*(seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d)/,
-    );
-
-    if (!match) return null;
-
-    const amount = Number(match[1]);
-    const unit = match[2];
-
-    if (
-      unit.startsWith('s')
-    ) {
-      total += amount * 1000;
-    } else if (
-      unit.startsWith('m')
-    ) {
-      total += amount * 60 * 1000;
-    } else if (
-      unit.startsWith('h')
-    ) {
-      total += amount * 60 * 60 * 1000;
-    } else if (
-      unit.startsWith('d')
-    ) {
-      total += amount * 24 * 60 * 60 * 1000;
-    }
-  }
-
-  if (total <= 0) return null;
-
-  return total;
-}
-
-function schedule(reminder, client) {
-  const remaining = reminder.remindAt - Date.now();
-
-  if (remaining <= 0) {
-    fireReminder(reminder, client);
-    return;
-  }
-
-  // setTimeout has a maximum delay, so long reminders
-  // are scheduled in chunks.
-  const maxDelay = 2_147_000_000;
-  const delay = Math.min(remaining, maxDelay);
-
-  setTimeout(() => {
-    schedule(reminder, client);
-  }, delay);
 }
 
 async function fireReminder(reminder, client) {
@@ -117,6 +86,27 @@ async function fireReminder(reminder, client) {
   }
 }
 
+function schedule(reminder, client) {
+  const remaining =
+    reminder.remindAt - Date.now();
+
+  if (remaining <= 0) {
+    void fireReminder(reminder, client);
+    return;
+  }
+
+  // javascript timers cannot safely represent very long delays
+  const maxDelay = 2_147_000_000;
+  const delay = Math.min(
+    remaining,
+    maxDelay,
+  );
+
+  setTimeout(() => {
+    schedule(reminder, client);
+  }, delay);
+}
+
 export function addReminder({
   userId,
   channelId,
@@ -135,6 +125,7 @@ export function addReminder({
   };
 
   reminders.push(reminder);
+
   saveReminders();
   schedule(reminder, client);
 
@@ -148,7 +139,7 @@ export function restoreReminders(client) {
     schedule(reminder, client);
   }
 
-  if (reminders.length > 0) {
+  if (reminders.length) {
     console.log(
       `restored ${reminders.length} reminder(s)`,
     );

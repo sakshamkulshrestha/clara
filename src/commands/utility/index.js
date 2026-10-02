@@ -59,7 +59,6 @@ export const utilityCommands = [
     name: 'serverinfo',
     aliases: ['si'],
     description: 'show server information',
-
     options: [],
 
     async prefix({ message }) {
@@ -160,7 +159,6 @@ export const utilityCommands = [
     name: 'serverbanner',
     aliases: [],
     description: 'show the server banner',
-
     options: [],
 
     async prefix({ message }) {
@@ -198,7 +196,6 @@ export const utilityCommands = [
     name: 'servericon',
     aliases: [],
     description: 'show the server icon',
-
     options: [],
 
     async prefix({ message }) {
@@ -246,7 +243,8 @@ export const utilityCommands = [
       },
       {
         name: 'name',
-        description: 'new nickname, leave empty to reset',
+        description:
+          'new nickname, leave empty to reset',
         type: ApplicationCommandOptionType.String,
         required: false,
         max_length: 32,
@@ -379,7 +377,8 @@ export const utilityCommands = [
     options: [
       {
         name: 'time',
-        description: 'example: 30s, 2min, 1h, 1d',
+        description:
+          'use 10s, 10sec, 10m, 10min, 1h, 1hr or 1d',
         type: ApplicationCommandOptionType.String,
         required: true,
       },
@@ -393,7 +392,7 @@ export const utilityCommands = [
     ],
 
     async prefix({ message, args, client }) {
-      if (!args.length) {
+      if (args.length < 2) {
         return message.reply(
           'use .remindme 2min your reason',
         );
@@ -403,7 +402,7 @@ export const utilityCommands = [
 
       if (!delay) {
         return message.reply(
-          'invalid time. use something like 30s, 2min, 1h or 1d.',
+          'invalid time. use 10s, 10sec, 10m, 10min, 1h, 1hr or 1d.',
         );
       }
 
@@ -426,10 +425,8 @@ export const utilityCommands = [
         client,
       });
 
-      const seconds = Math.ceil(delay / 1000);
-
       await message.reply(
-        `okay, i'll remind you in ${formatDuration(seconds)}.`,
+        `okay, i'll remind you in ${formatDuration(delay)}.`,
       );
     },
 
@@ -444,7 +441,7 @@ export const utilityCommands = [
 
       if (!delay) {
         return interaction.reply(
-          'invalid time. use something like 30s, 2min, 1h or 1d.',
+          'invalid time. use 10s, 10sec, 10m, 10min, 1h, 1hr or 1d.',
         );
       }
 
@@ -456,52 +453,70 @@ export const utilityCommands = [
         client,
       });
 
-      const seconds = Math.ceil(delay / 1000);
-
       await interaction.reply(
-        `okay, i'll remind you in ${formatDuration(seconds)}.`,
+        `okay, i'll remind you in ${formatDuration(delay)}.`,
       );
     },
   },
 ];
 
-function formatDuration(seconds) {
+function formatDuration(milliseconds) {
+  const seconds = Math.ceil(
+    milliseconds / 1000,
+  );
+
   if (seconds < 60) {
     return `${seconds}s`;
   }
 
   if (seconds < 3600) {
-    const minutes = Math.floor(seconds / 60);
-    const remaining = seconds % 60;
+    const minutes = Math.floor(
+      seconds / 60,
+    );
+
+    const remaining =
+      seconds % 60;
 
     return remaining
-      ? `${minutes}min ${remaining}s`
-      : `${minutes}min`;
+      ? `${minutes}m ${remaining}s`
+      : `${minutes}m`;
   }
 
   if (seconds < 86400) {
-    const hours = Math.floor(seconds / 3600);
-    const remaining = seconds % 3600;
+    const hours = Math.floor(
+      seconds / 3600,
+    );
+
+    const remaining =
+      seconds % 3600;
 
     if (!remaining) {
       return `${hours}h`;
     }
 
-    const minutes = Math.floor(remaining / 60);
+    const minutes = Math.floor(
+      remaining / 60,
+    );
 
     return minutes
-      ? `${hours}h ${minutes}min`
+      ? `${hours}h ${minutes}m`
       : `${hours}h`;
   }
 
-  const days = Math.floor(seconds / 86400);
-  const remaining = seconds % 86400;
+  const days = Math.floor(
+    seconds / 86400,
+  );
+
+  const remaining =
+    seconds % 86400;
 
   if (!remaining) {
     return `${days}d`;
   }
 
-  const hours = Math.floor(remaining / 3600);
+  const hours = Math.floor(
+    remaining / 3600,
+  );
 
   return hours
     ? `${days}d ${hours}h`
