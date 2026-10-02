@@ -9,15 +9,19 @@ import {
 
 import { helpCommand } from './src/commands/help/index.js';
 import { utilityCommands } from './src/commands/utility/index.js';
-import { restoreReminders } from './src/utils/reminders.js';
 import { moderationCommands } from './src/commands/moderation/index.js';
 import {
   aiCommands,
   handleAIMessage,
 } from './src/commands/ai/index.js';
-import { startStatusRotation } from './src/utils/status.js';
-import { startHealthServer } from './src/health.js';
 
+import { restoreReminders } from './src/utils/reminders.js';
+import { startStatusRotation } from './src/utils/status.js';
+
+import {
+  setHealthBot,
+  startHealthServer,
+} from './src/health.js';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -55,7 +59,6 @@ client.once('clientReady', async (bot) => {
   console.log(`online as ${bot.user.tag}`);
 
   startStatusRotation(bot);
-
   restoreReminders(bot);
 
   const rest = new REST({ version: '10' }).setToken(token);
@@ -78,7 +81,6 @@ client.once('clientReady', async (bot) => {
     }
   }
 
-  // register commands per server for instant updates
   for (const guild of bot.guilds.cache.values()) {
     await rest.put(
       Routes.applicationGuildCommands(
@@ -90,7 +92,9 @@ client.once('clientReady', async (bot) => {
       },
     );
 
-    console.log(`commands registered in ${guild.name}`);
+    console.log(
+      `commands registered in ${guild.name}`,
+    );
   }
 });
 
@@ -98,7 +102,6 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.guild) return;
 
-  // prefix commands
   if (message.content.startsWith('.')) {
     const input = message.content
       .slice(1)
@@ -107,6 +110,7 @@ client.on('messageCreate', async (message) => {
     if (!input) return;
 
     const parts = input.split(/\s+/);
+
     const name =
       parts.shift()?.toLowerCase();
 
@@ -137,7 +141,6 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // mentions + .ai automatic replies
   await handleAIMessage(
     message,
     client,
@@ -160,7 +163,10 @@ client.on('interactionCreate', async (interaction) => {
       client,
     });
   } catch (error) {
-    console.error('slash command error:', error);
+    console.error(
+      'slash command error:',
+      error,
+    );
 
     if (
       interaction.replied ||
@@ -178,13 +184,18 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 client.on('error', (error) => {
-  console.error('discord client error:', error);
+  console.error(
+    'discord client error:',
+    error,
+  );
 });
 
 process.on('unhandledRejection', (error) => {
-  console.error('unhandled rejection:', error);
+  console.error(
+    'unhandled rejection:',
+    error,
+  );
 });
-
 
 setHealthBot(client);
 startHealthServer();
