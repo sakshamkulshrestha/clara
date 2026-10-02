@@ -639,13 +639,18 @@ export const moderationCommands = [
 
       try {
         const deleted =
-          await message.channel.bulkDelete(
-            amount,
-            true,
-          );
+  await message.channel.bulkDelete(
+    Math.min(amount + 1, 100),
+    true,
+  );
 
-        const msg = await message.channel.send(
-  `${randomPurgeMessage()} ${deleted.size} message(s).`,
+const removedCount = Math.max(
+  deleted.size - 1,
+  0,
+);
+
+const msg = await message.channel.send(
+  `${randomPurgeMessage()} ${removedCount} message(s).`,
 );
 
 setTimeout(() => {
