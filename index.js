@@ -15,6 +15,7 @@ import {
   aiCommands,
   handleAIMessage,
 } from './src/commands/ai/index.js';
+import { startHealthServer } from './src/health.js';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -181,4 +182,5 @@ process.on('unhandledRejection', (error) => {
   console.error('unhandled rejection:', error);
 });
 
+startHealthServer();
 client.login(token);
