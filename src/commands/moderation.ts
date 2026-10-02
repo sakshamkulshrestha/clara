@@ -1,6 +1,5 @@
-import { PermissionsBitField } from 'discord.js';
+import { PermissionsBitField, type Guild, type GuildMember } from 'discord.js';
 import { db, save } from '../lib/db';
-import { actionLine } from '../lib/ai';
 import {
   type Command, type Msg, done, duration, embed, guard, idOf, member, role, say, show, stamp, textChannel, user,
 } from '../lib/util';
@@ -47,8 +46,7 @@ const unban: Command = {
     const id = idOf(args[0]);
     if (!id) return say(msg, 'give an id.');
     const reason = reasonOf(args, 1);
-    const ok = await msg.guild.members.unban(id, audit(msg, reason)).then(() => true).catch(() => false);
-    if (!ok) return say(msg, 'not banned.');
+    await msg.guild.members.unban(id, audit(msg, reason));
     return done(msg, 'unban', `target id: ${id}\nreason: ${reason}`, 'forgiven. once.');
   },
 };
@@ -82,8 +80,8 @@ const timeout: Command = {
 const untimeout: Command = {
   name: 'untimeout', aliases: ['unmute'], desc: 'remove a timeout', usage: '<user>', perm: F.ModerateMembers,
   async run(msg, args) {
-    const m = await member(msg, args[0]);
-    if (!m) return say(msg, 'who.');
+    const m = await target(msg, args[0]);
+    if (!m) return;
     if (!m.moderatable) return say(msg, 'i cannot touch that one.');
     await m.timeout(null);
     return done(msg, 'timeout removed', `target: ${m.displayName}`, 'you may speak.', m.id);
@@ -118,8 +116,8 @@ const warnings: Command = {
 const clearwarns: Command = {
   name: 'clearwarns', desc: 'clear all warnings of a member', usage: '<user>', perm: F.ModerateMembers,
   async run(msg, args) {
-    const m = await member(msg, args[0]);
-    if (!m) return say(msg, 'who.');
+    const m = await target(msg, args[0]);
+    if (!m) return;
     delete db.warnings[`${msg.guildId}:${m.id}`];
     save();
     return done(msg, 'warnings cleared', `target: ${m.displayName}`, 'slate wiped.');
@@ -129,18 +127,50 @@ const clearwarns: Command = {
 const purge: Command = {
   name: 'purge', aliases: ['clear'], desc: 'delete messages, optionally from one user', usage: '<1-100> [user]', perm: F.ManageMessages,
   async run(msg, args) {
-    const n = parseInt(args[0]);
-    if (!n || n < 1 || n > 100) return say(msg, 'give a number. 1 to 100.');
+    const n = Number(args[0]);
+    if (!Number.isInteger(n) || n < 1 || n > 100) return say(msg, 'give a number. 1 to 100.');
     const only = idOf(args[1]);
     await msg.delete().catch(() => {});
     let found = await msg.channel.messages.fetch({ limit: 100 });
     if (only) found = found.filter((m) => m.author.id === only);
     const deleted = await msg.channel.bulkDelete(found.first(n), true);
-    const line = await actionLine('purge', `moderator: ${msg.member?.displayName}\ncount: ${deleted.size}${only ? '\nfiltered to a single user' : ''}`, `${deleted.size} gone.`);
-    const sent = await msg.channel.send({ content: line, allowedMentions: { parse: [] } });
+    const sent = await done(msg, 'purge', `count: ${deleted.size}${only ? '\nfiltered to a single user' : ''}`, `${deleted.size} gone.`);
     setTimeout(() => sent.delete().catch(() => {}), 5000);
   },
 };
+
+type LockChannel = NonNullable<ReturnType<typeof textChannel>>;
+
+export async function setChannelLock(ch: LockChannel, guild: Guild, moderator: GuildMember, locked: boolean) {
+  const manageChannels = F.ManageChannels;
+  if (!ch.permissionsFor(moderator)?.has(manageChannels)) {
+    throw new Error('you need manage channels in that channel.');
+  }
+
+  const bot = guild.members.me ?? await guild.members.fetchMe();
+  if (!ch.permissionsFor(bot)?.has(manageChannels)) {
+    throw new Error('i need manage channels in that channel.');
+  }
+
+  const hasSavedState = Object.hasOwn(db.lockedChannels, ch.id);
+  const overwrite = ch.permissionOverwrites.cache.get(guild.id);
+  const previous = locked
+    ? hasSavedState
+      ? db.lockedChannels[ch.id]
+      : overwrite?.allow.has(F.SendMessages) ? true : overwrite?.deny.has(F.SendMessages) ? false : null
+    : hasSavedState ? db.lockedChannels[ch.id] : null;
+
+  await ch.permissionOverwrites.edit(guild.roles.everyone, { SendMessages: locked ? false : previous });
+
+  if (locked) db.lockedChannels[ch.id] = previous;
+  else delete db.lockedChannels[ch.id];
+  try {
+    save();
+  } catch (error) {
+    console.error('could not save channel lock state', error);
+  }
+  return previous;
+}
 
 const toggleLock = (locked: boolean): Command => ({
   name: locked ? 'lock' : 'unlock',
@@ -150,8 +180,13 @@ const toggleLock = (locked: boolean): Command => ({
   async run(msg, args) {
     const ch = textChannel(msg, args[0]);
     if (!ch) return say(msg, 'text channels only.');
-    await ch.permissionOverwrites.edit(msg.guild.roles.everyone, { SendMessages: locked ? false : null });
-    return done(msg, locked ? 'lock channel' : 'unlock channel', `channel: ${ch.name}`, locked ? 'locked.' : 'unlocked.');
+    const previous = await setChannelLock(ch, msg.guild, msg.member!, locked);
+    return done(
+      msg,
+      locked ? 'lock channel' : 'unlock channel',
+      `channel: ${ch.name}`,
+      locked ? 'locked.' : previous === false ? 'previous setting restored.' : 'unlocked.',
+    );
   },
 });
 
@@ -181,9 +216,10 @@ const roleCmd = (give: boolean): Command => ({
   usage: '<user> <role>',
   perm: F.ManageRoles,
   async run(msg, args) {
-    const m = await member(msg, args[0]);
+    const m = await target(msg, args[0]);
     const r = role(msg, args.slice(1).join(' '));
-    if (!m || !r) return say(msg, `usage: ${give ? 'addrole' : 'removerole'} <user> <role>`);
+    if (!m) return;
+    if (!r) return say(msg, `usage: ${give ? 'addrole' : 'removerole'} <user> <role>`);
     const err = roleError(msg, r);
     if (err) return say(msg, err);
     await (give ? m.roles.add(r, audit(msg, 'role')) : m.roles.remove(r, audit(msg, 'role')));

@@ -15,7 +15,8 @@ export interface Command {
 
 // ---------- output ----------
 export const say = (msg: Msg, content: string, ping: string[] = []) =>
-  msg.reply({ content, allowedMentions: { parse: [], users: ping, repliedUser: false } });
+  msg.reply({ content, allowedMentions: { parse: [], users: ping, repliedUser: false } })
+    .catch(() => msg.author.send({ content, allowedMentions: { parse: [], users: ping } }));
 
 export const embed = () => new EmbedBuilder().setColor(config.color);
 
@@ -30,8 +31,19 @@ export const info = (title: string, rows: [string, string | number][], thumb?: s
 
 // ai generated reply for an executed command
 export async function done(msg: Msg, action: string, detail: string, fallback: string, ping?: string) {
-  const line = await actionLine(action, `moderator: ${msg.member?.displayName}\n${detail}`, fallback);
+  const line = await actionLine(action, `moderator: ${msg.member?.displayName}\n${detail}`, fallback).catch(() => fallback);
   return say(msg, ping ? `<@${ping}> ${line}` : line, ping ? [ping] : []);
+}
+
+export function commandError(error: unknown): string {
+  const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
+  if (code === '50013') return 'i need the right permissions and role position for that.';
+  if (code === '50001' || code === '10003') return 'i cannot access that channel or target.';
+  if (code === '10026') return 'that user is not banned.';
+  if (code === '10007') return 'i cannot find that member.';
+  if (code === '50035') return 'discord rejected that input.';
+  if (error instanceof Error && !code) return error.message;
+  return 'that failed. check the bot permissions and target hierarchy.';
 }
 
 // ---------- parsing ----------

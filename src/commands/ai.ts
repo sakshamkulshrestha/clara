@@ -1,6 +1,6 @@
 import { PermissionsBitField } from 'discord.js';
 import { db, save } from '../lib/db';
-import { chat, forget, persona, respond } from '../lib/ai';
+import { chat, persona, respond } from '../lib/ai';
 import { type Command, done, say, textChannel, who } from '../lib/util';
 
 const aichannel: Command = {
@@ -28,14 +28,6 @@ const ask: Command = {
   },
 };
 
-const forgetCmd: Command = {
-  name: 'forget', desc: 'wipe what the ai remembers about you',
-  async run(msg) {
-    forget(msg.guildId, msg.author.id);
-    return done(msg, 'memory wiped', `user: ${msg.member?.displayName}`, 'who are you again.');
-  },
-};
-
 const roast: Command = {
   name: 'roast', desc: 'light roast of someone', usage: '[user]',
   async run(msg, args) {
@@ -54,4 +46,4 @@ const roast: Command = {
   },
 };
 
-export const ai: Command[] = [aichannel, ask, forgetCmd, roast];
+export const ai: Command[] = [aichannel, ask, roast];
