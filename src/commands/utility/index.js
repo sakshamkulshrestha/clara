@@ -458,6 +458,50 @@ export const utilityCommands = [
       );
     },
   },
+  {
+  name: 'echo',
+  aliases: [],
+  description: 'repeat a message',
+
+  options: [
+    {
+      name: 'message',
+      description: 'message to repeat',
+      type: ApplicationCommandOptionType.String,
+      required: true,
+      max_length: 2000,
+    },
+  ],
+
+  async prefix({ message, args }) {
+    const text = args.join(' ').trim();
+
+    if (!text) {
+      return message.reply(
+        'give me something to echo.',
+      );
+    }
+
+    await message.reply({
+      content: text,
+      allowedMentions: {
+        parse: [],
+      },
+    });
+  },
+
+  async slash({ interaction }) {
+    const text =
+      interaction.options.getString('message');
+
+    await interaction.reply({
+      content: text,
+      allowedMentions: {
+        parse: [],
+      },
+    });
+  },
+},
 ];
 
 function formatDuration(milliseconds) {
@@ -520,5 +564,5 @@ function formatDuration(milliseconds) {
 
   return hours
     ? `${days}d ${hours}h`
-    : `${days}d`;
+    : `${days}d`;  
 }

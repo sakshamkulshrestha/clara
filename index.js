@@ -10,6 +10,7 @@ import {
 import { helpCommand } from './src/commands/help/index.js';
 import { utilityCommands } from './src/commands/utility/index.js';
 import { restoreReminders } from './src/utils/reminders.js';
+import { moderationCommands } from './src/commands/moderation/index.js';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -20,6 +21,7 @@ if (!token) {
 const commands = [
   helpCommand,
   ...utilityCommands,
+  ...moderationCommands,
 ];
 
 const commandMap = new Map();
