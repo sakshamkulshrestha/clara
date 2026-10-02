@@ -15,7 +15,9 @@ import {
   aiCommands,
   handleAIMessage,
 } from './src/commands/ai/index.js';
+import { startStatusRotation } from './src/utils/status.js';
 import { startHealthServer } from './src/health.js';
+
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -52,7 +54,8 @@ const client = new Client({
 client.once('clientReady', async (bot) => {
   console.log(`online as ${bot.user.tag}`);
 
-  // restore reminders saved before a restart
+  startStatusRotation(bot);
+
   restoreReminders(bot);
 
   const rest = new REST({ version: '10' }).setToken(token);
@@ -182,5 +185,8 @@ process.on('unhandledRejection', (error) => {
   console.error('unhandled rejection:', error);
 });
 
+
+setHealthBot(client);
 startHealthServer();
+
 client.login(token);
