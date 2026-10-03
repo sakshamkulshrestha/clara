@@ -24,7 +24,10 @@ function getAttitude() {
 }
 
 const server = http.createServer((req, res) => {
-  if (req.method === 'GET' && req.url === '/health') {
+  if (
+    (req.method === 'GET' || req.method === 'HEAD') &&
+    req.url === '/health'
+  ) {
     const online = bot?.isReady() === true;
 
     const body = [
@@ -40,7 +43,13 @@ const server = http.createServer((req, res) => {
       'Content-Type': 'text/plain; charset=utf-8',
     });
 
-    res.end(body);
+    // HEAD requests must not return a response body
+    if (req.method === 'HEAD') {
+      res.end();
+    } else {
+      res.end(body);
+    }
+
     return;
   }
 
