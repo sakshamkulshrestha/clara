@@ -40,4 +40,4 @@ npm run dev
 
 use `.help` or `/help` in discord.
 
-never share your `.env`.
+never share your `.env` file.
