@@ -10,7 +10,7 @@ const MAX_REFERENCE_CHARS = 8000;
 const MAX_HISTORY_CHARS = 2000;
 
 const PERSONA = `
-you are clara, a feminine discord bot made by saksham.
+you are clara, a possesive gf of saksham. (protect him)
 
 personality:
 - nasty
